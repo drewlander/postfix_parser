@@ -6,7 +6,7 @@ import argparse
 p = MailParser()
 mailevents = []
 
-def get_spam_emails():
+def get_spam_emails(mailevents):
     spams = [x for x in mailevents if hasattr(x, 'mail_type') and x.mail_type == 'SPAM']
     spams= sorted(spams, key=lambda x: datetime.strptime(x.timestamp, '%b %d %H:%M:%S'))
     year = datetime.now().year
@@ -29,14 +29,14 @@ def get_args(args):
                        help='sum the integers (default: find the max)')
     return parser
 
-with open("maillog") as f:
-    for line in f:
-        o =  p.parse(line)
-        if o:
-            mailevents.append(o)
-
-
-
+def get_mail_events(logfile):
+    with open(logfile) as f:
+        for line in f:
+            o =  p.parse(line)
+            if o:
+                mailevents.append(o)
+        return mailevents
+    
 
 def parse_args():
     parser = parser = argparse.ArgumentParser(description = "Get some stats!")
@@ -45,13 +45,16 @@ def parse_args():
                       default=False,
                       dest='spam_overview',
                       help='Generic overview of spam stats')
+    parser.add_argument('-f', '--logfile', dest='logfile',
+                         default='/var/log/maillog')
     args = parser.parse_args()
     return parser, args
 
 def main():
     parser, args = parse_args()
     if args.spam_overview:
-        get_spam_emails()
+        mailevents = get_mail_events(args.logfile)
+        get_spam_emails(mailevents)
     else:
         parser.print_help()
 
