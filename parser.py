@@ -54,19 +54,6 @@ class MailParser(object):
         else:
             return relay
 
-    def send_event(self, mailo):
-        print mailo.__dict__
-
-    def create_event(self, event_items):
-        if "mailfrom" in event_items:
-            event_items.update({"from": event_items["mailfrom"]})
-            event_items.pop("mailfrom", None)
-        message = {"eventType": "mailTransport"}
-        event_items.update(message)
-        headers = {"headers": event_items, "body": "plain old body"}
-        container = [headers]
-        return container
-
     def find_local_id(self, localID):
         o = [o for o in self.mobjects if o.localID == localID]
         if len(o) == 0:

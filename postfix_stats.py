@@ -1,5 +1,6 @@
 from parser import MailParser, MailObject
 from datetime import datetime
+from collections import Counter
 import time
 import argparse
 
@@ -16,9 +17,18 @@ def get_spam_emails(mailevents):
     elapsed_seconds =  elapsed.seconds
     elapsed_minutes = elapsed.seconds/60
     elapsed_hours =  elapsed.seconds/3600
-    print "%s %s %s" %(elapsed_seconds, elapsed_minutes, elapsed_hours)
+    #emails = sorted(spams, key=lambda x: x.mailfrom)
     print "In %s hours we marked %i messages as spam" % (elapsed_hours, len(spams))
+    most_common_mailfrom = get_most_common_item([x.mailfrom for x in spams])
+    most_common_rcptto = get_most_common_item([x.rcptto for x in spams])
+    most_common_sending_ip = get_most_common_item([x.sending_ip for x in spams])
+    print "Most common sending email address being marked as spam: %s" % most_common_mailfrom
+    print "Most common email address received mail marked as spam: %s" % most_common_rcptto
+    print "Most common ip address sending email marked as spam: %s" % most_common_sending_ip
 
+def get_most_common_item(items):
+    data = Counter(items)
+    return data.most_common(1)
 
 def get_args(args):
     parser = argparse.ArgumentParser(description='Process some integers.')
