@@ -4,49 +4,47 @@ from collections import Counter
 import time
 import argparse
 
-p = MailParser()
-mailevents = []
 
-def get_spam_emails(mailevents):
-    spams = [x for x in mailevents if hasattr(x, 'mail_type') and x.mail_type == 'SPAM']
-    spams= sorted(spams, key=lambda x: datetime.strptime(x.timestamp, '%b %d %H:%M:%S'))
-    year = datetime.now().year
-    first = datetime.strptime(spams[0].timestamp, '%b %d %H:%M:%S').replace(year=year)
-    last =  datetime.strptime(spams[len(spams)-1].timestamp, '%b %d %H:%M:%S').replace(year=year)
-    elapsed = last-first
-    elapsed_seconds =  elapsed.seconds
-    elapsed_minutes = elapsed.seconds/60
-    elapsed_hours =  elapsed.seconds/3600
-    #emails = sorted(spams, key=lambda x: x.mailfrom)
-    print "In %s hours we marked %i messages as spam" % (elapsed_hours, len(spams))
-    most_common_mailfrom = get_most_common_item([x.mailfrom for x in spams])
-    most_common_rcptto = get_most_common_item([x.rcptto for x in spams])
-    most_common_sending_ip = get_most_common_item([x.sending_ip for x in spams])
-    print "Most common sending email address being marked as spam: %s" % most_common_mailfrom
-    print "Most common email address received mail marked as spam: %s" % most_common_rcptto
-    print "Most common ip address sending email marked as spam: %s" % most_common_sending_ip
+class PostfixAmavisStats(object):
+    def __init__(self, num_results, maillog):
+        # number of results to return
+        self.num_results = num_results
+        # location of maillog to parse
+        self.maillog = maillog
 
-def get_most_common_item(items):
-    data = Counter(items)
-    return data.most_common(1)
-
-def get_args(args):
-    parser = argparse.ArgumentParser(description='Process some integers.')
-    parser.add_argument('integers', metavar='N', type=int, nargs='+',
-                       help='an integer for the accumulator')
-    parser.add_argument('--sum', dest='accumulate', action='store_const',
-                       const=sum, default=max,
-                       help='sum the integers (default: find the max)')
-    return parser
-
-def get_mail_events(logfile):
-    with open(logfile) as f:
-        for line in f:
-            o =  p.parse(line)
-            if o:
-                mailevents.append(o)
-        return mailevents
+    def get_spam_emails(self):
+        mailevents = self.get_mail_events(self.maillog)
+        spams = [x for x in mailevents if hasattr(x, 'mail_type') and x.mail_type == 'SPAM']
+        spams= sorted(spams, key=lambda x: datetime.strptime(x.timestamp, '%b %d %H:%M:%S'))
+        year = datetime.now().year
+        first = datetime.strptime(spams[0].timestamp, '%b %d %H:%M:%S').replace(year=year)
+        last =  datetime.strptime(spams[len(spams)-1].timestamp, '%b %d %H:%M:%S').replace(year=year)
+        elapsed = last-first
+        elapsed_seconds =  elapsed.seconds
+        elapsed_minutes = elapsed.seconds/60
+        elapsed_hours =  elapsed.seconds/3600
+        print "In %s hours we marked %i messages as spam" % (elapsed_hours, len(spams))
+        most_common_mailfrom = self.get_most_common_item([x.mailfrom for x in spams])
+        most_common_rcptto = self.get_most_common_item([x.rcptto for x in spams])
+        most_common_sending_ip = self.get_most_common_item([x.sending_ip for x in spams])
+        print "Most common sending email address being marked as spam: %s" % most_common_mailfrom
+        print "Most common email address received mail marked as spam: %s" % most_common_rcptto
+        print "Most common ip address sending email marked as spam: %s" % most_common_sending_ip
     
+    def get_most_common_item(self, items):
+        data = Counter(items)
+        return data.most_common(self.num_results)
+    
+    def get_mail_events(self, logfile):
+        mailevents = []
+        p = MailParser()
+        with open(logfile) as f:
+            for line in f:
+                o =  p.parse(line)
+                if o:
+                    mailevents.append(o)
+            return mailevents
+        
 
 def parse_args():
     parser = parser = argparse.ArgumentParser(description = "Get some stats!")
@@ -57,14 +55,19 @@ def parse_args():
                       help='Generic overview of spam stats')
     parser.add_argument('-f', '--logfile', dest='logfile',
                          default='/var/log/maillog')
+    parser.add_argument('-n', '--num_results', dest='num_results',
+                         default=1, type=int,
+                         help='number of results to show')
     args = parser.parse_args()
     return parser, args
 
 def main():
     parser, args = parse_args()
+    num_results = args.num_results
     if args.spam_overview:
-        mailevents = get_mail_events(args.logfile)
-        get_spam_emails(mailevents)
+        s = PostfixAmavisStats(args.num_results, args.logfile)
+        #mailevents = get_mail_events(args.logfile)
+        s.get_spam_emails()
     else:
         parser.print_help()
 
