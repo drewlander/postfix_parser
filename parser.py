@@ -34,9 +34,14 @@ get_amavis_spam_re = re.compile("\w+\s+\d+\s[0-9:].+\s[\w\.]+ amavis\[\d+\]: "
                                 "\[\S+\]:\d+ \[(\S+)\] <(\S+)> -> <(\S+)>, "
                                 ".+ Message-ID: <(\S+)>, .+, Hits: (\S+), "
                                 "size: (\S+), queued_as: (\S+), ")
-get_amavis_spam_re = re.compile("(\w+\s+\d+\s[0-9:].+)\s[\w\.]+ amavis\[\d+\]: \(\S+\) (\S+) (\S+) {(\w+),(\w+)}, \[\S+\]:\d+ \[(\S+)\] <(\S+)> -> <(\S+)>, .+ Message-ID: <(\S+)>, .+, Hits: (\S+), size: (\S+), queued_as: (\S+), ")
+get_amavis_spam_re = re.compile("(\w+\s+\d+\s[0-9:].+)\s[\w\.]+ amavis\[\d+\]: "
+                                "\(\S+\) (\S+) (\S+) {(\w+),(\w+)}, \[\S+\]:\d+ "
+                                "\[(\S+)\] <(\S+)> -> <(\S+)>, .+ Message-ID: "
+                                "<(\S+)>, .+, Hits: (\S+), size: (\S+), queued_as: (\S+), ")
 
+get_successful_sasl_auth_re = re.compile("(\w+\s+\d+\s[0-9:].+)\s[\w\.]+ postfix\/smtpd\[\d+\]: (\S+): client=(\S+)\[(\S+)\], sasl_method=(\S+), sasl_username=(\S+)")
 
+get_failed_sasl_auth_re = re.compile("(\w+\s+\d+\s[0-9:].+)\s[\w\.]+ postfix\/smtpd\[\d+\]: (\S+): (\S+)\[(\S+)\]: SASL (.+): (.+)")
 
 class MailObject (object):
     def __init__(self, localID):
@@ -94,15 +99,9 @@ class MailParser(object):
             # relays have no virus or spam scannning
             o.spamResult = "No"
             o.virusResult = "No"
+            o.logtype = "mail"
+
             return o
-            #event = self.create_event(o.__dict__)
-            # We copy the dict because python passes by reference.
-            # So setting o.result again and calling the create_event
-            # function would change the old result as well
-            #received_event = o.__dict__.copy()
-            #received_event["result"] = "received"
-            #received_event = self.create_event(received_event)
-            #return event + received_event
 
     def get_message_id(self, line):
         m = get_message_id_re.match(line)
@@ -128,8 +127,8 @@ class MailParser(object):
             o.result_detail = m.group(4)
             o.timestamp = m.group(1)
             o.host = m.group(2)
+            o.logtype = "mail"
             return o
-            #return self.create_event(o.__dict__)
 
     def get_removed(self, line):
         m = queue_id_removed_re.match(line)
@@ -152,13 +151,39 @@ class MailParser(object):
             o.spam_score = m.group(10)
             o.size = m.group(11)
             o.queued_as = m.group(12)
+            o.logtype = "amavis"
             return o
+
+    def get_successful_sasl_auth(self, line):
+        m = get_successful_sasl_auth_re.match(line)
+        if m:
+            o = MailObject(m.group(2))
+            o.timestamp = m.group(1)
+            o.sending_ip = m.group(4)
+            o.sasl_type = m.group(5)
+            o.sasl_username = m.group(6)
+            o.logtype = "successful_authentication"
+            return o
+
+    def get_failed_sasl_auth(self, line):
+        m = get_failed_sasl_auth_re.match(line)
+        if m:
+            o = MailObject(None)
+            o.timestamp = m.group(1)
+            o.sending_ip = m.group(4)
+            o.message = m.group(5)
+            o.detail = m.group(6)
+            o.logtype = "failed_authentication"
+            return o
+
 
     def parse(self, line):
         for x in [self.get_client_info, self.get_subject,
                   self.get_dsn, self.get_from, self.get_message_id,
                   self.sender_addr_rejected, self.get_removed,
-                  self.get_auth_sender, self.get_amavis_spam]:
+                  self.get_auth_sender, self.get_amavis_spam,
+                  self.get_successful_sasl_auth,
+                  self.get_failed_sasl_auth]:
             event = x(line)
             if event:
                 return event

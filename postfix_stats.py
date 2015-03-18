@@ -11,10 +11,19 @@ class PostfixAmavisStats(object):
         self.num_results = num_results
         # location of maillog to parse
         self.maillog = maillog
+        self.mailevents = self.get_mail_events(maillog)
 
-    def get_spam_emails(self):
-        mailevents = self.get_mail_events(self.maillog)
-        spams = [x for x in mailevents if hasattr(x, 'mail_type') and x.mail_type == 'SPAM']
+    def get_authentication_stats(self):
+        success_auths = [ x for x in self.mailevents if x.logtype == "successful_authentication"]
+        failed_auths = [ x for x in self.mailevents if x.logtype == "failed_authentication"]
+        most_common_success_auths = self.get_most_common_item([x.sasl_username for x in success_auths])
+        most_common_failed_auths = self.get_most_common_item([x.sending_ip for x in failed_auths])
+        print "Most common successful authentications for users: %s" % most_common_success_auths
+        print "Most common failed authentications for ip: %s" % most_common_failed_auths
+
+    def get_spam_stats(self):
+        #mailevents = self.get_mail_events(self.maillog)
+        spams = [x for x in self.mailevents if hasattr(x, 'mail_type') and x.mail_type == 'SPAM']
         spams= sorted(spams, key=lambda x: datetime.strptime(x.timestamp, '%b %d %H:%M:%S'))
         year = datetime.now().year
         first = datetime.strptime(spams[0].timestamp, '%b %d %H:%M:%S').replace(year=year)
@@ -58,6 +67,11 @@ def parse_args():
     parser.add_argument('-n', '--num_results', dest='num_results',
                          default=1, type=int,
                          help='number of results to show')
+    parser.add_argument('-a', '--authentication_overview',
+                         dest='authentication_overview',
+                         action='store_true',
+                         default=False,
+                         help="Overview of authentication stats")
     args = parser.parse_args()
     return parser, args
 
@@ -67,9 +81,12 @@ def main():
     if args.spam_overview:
         s = PostfixAmavisStats(args.num_results, args.logfile)
         #mailevents = get_mail_events(args.logfile)
-        s.get_spam_emails()
-    else:
-        parser.print_help()
+        s.get_spam_stats()
+    if args.authentication_overview:
+        s = PostfixAmavisStats(args.num_results, args.logfile)
+        s.get_authentication_stats()
+    #else:
+    #    parser.print_help()
 
 
 
