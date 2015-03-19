@@ -39,7 +39,14 @@ class PostfixAmavisStats(object):
         print "Most common sending email address being marked as spam: %s" % most_common_mailfrom
         print "Most common email address received mail marked as spam: %s" % most_common_rcptto
         print "Most common ip address sending email marked as spam: %s" % most_common_sending_ip
-    
+   
+    def get_emails_stats(self):
+        emails = [x for x in self.mailevents if x.logtype == "mail"]
+        most_common_receipients = self.get_most_common_item([x.to for x in emails])
+        most_common_senders = self.get_most_common_item([x.mailfrom for x in emails if hasattr(x, 'mailfrom')])
+        print "Most common email address sent to: %s" % most_common_receipients
+        print "Most common email address sent from: %s" % most_common_senders
+
     def get_most_common_item(self, items):
         data = Counter(items)
         return data.most_common(self.num_results)
@@ -72,6 +79,11 @@ def parse_args():
                          action='store_true',
                          default=False,
                          help="Overview of authentication stats")
+    parser.add_argument('-m', '--mailoverview',
+                        action='store_true',
+                        dest='mail_overview',
+                        help='overview of senders and receivers')
+
     args = parser.parse_args()
     return parser, args
 
@@ -85,6 +97,10 @@ def main():
     if args.authentication_overview:
         s = PostfixAmavisStats(args.num_results, args.logfile)
         s.get_authentication_stats()
+    if args.mail_overview:
+        s = PostfixAmavisStats(args.num_results, args.logfile)
+        s.get_emails_stats()
+
     #else:
     #    parser.print_help()
 
