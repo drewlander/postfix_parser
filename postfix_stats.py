@@ -52,7 +52,28 @@ class PostfixAmavisStats(object):
         print "Most common email address received mail marked as spam: %s" % most_common_rcptto
         print "Most common ip address sending email marked as spam: %s" % most_common_sending_ip
 
-   
+  
+    def find_emails_for_address(self, address):
+        print "Finding emails for %s" % address
+        sent_to = [x for x in self.mailevents if hasattr(x, 'to') and address in x.to]
+        mail_from = [x for x in self.mailevents if hasattr(x, 'mailfrom') and address in x.mailfrom]
+        for email in sent_to:
+            print email.__dict__
+
+    def find_email_by_messageid(self, messageid):
+        print "Finding email with %s message ID" % messageid
+        email = [x for x in self.mailevents if hasattr(x, 'to') and messageid in x.message_id]
+        print mail_from.__dict__
+
+    def find_emails_by_recipients(self, rcptto, mailfrom):
+        print mailfrom
+        print rcptto
+        emails = [x for x in self.mailevents if hasattr(x, 'to') and hasattr(x, 'mailfrom')  
+                  and mailfrom in x.mailfrom and rcptto in x.to]
+
+        for email in emails:
+            print email.__dict__
+
     def get_emails_stats(self):
         emails = [x for x in self.mailevents if x.logtype == "mail"]
         most_common_receipients = self.get_most_common_item([x.to for x in emails])
@@ -85,7 +106,7 @@ def parse_args():
                       default=False,
                       dest='spam_overview',
                       help='Generic overview of spam stats')
-    parser.add_argument('-f', '--logfile', dest='logfile',
+    parser.add_argument('-l', '--logfile', dest='logfile',
                          default='/var/log/maillog')
     parser.add_argument('-n', '--num_results', dest='num_results',
                          default=1, type=int,
@@ -95,12 +116,26 @@ def parse_args():
                          action='store_true',
                          default=False,
                          help="Overview of authentication stats")
-    parser.add_argument('-m', '--mailoverview',
+    parser.add_argument('-o', '--mailoverview',
                         action='store_true',
                         dest='mail_overview',
                         help='overview of senders and receivers')
+    parser.add_argument('-f', '--find', dest='find',
+                        action='store_true',
+                        help="Find emails for address")
+
+    parser.add_argument('-e', '--emailaddress', action='append',
+                        dest='email_addresses', help='email address')
+    
+    parser.add_argument('--rcptto', action='store',
+                        dest='recip_email_address', help='recipient email address')
+
+    parser.add_argument('--mailfrom', action='store',
+                        dest='to_email_address', help='recipient email address')
+
 
     args = parser.parse_args()
+
     return parser, args
 
 def main():
@@ -116,6 +151,13 @@ def main():
     if args.mail_overview:
         s = PostfixAmavisStats(args.num_results, args.logfile)
         s.get_emails_stats()
+    if args.find:
+        s = PostfixAmavisStats(args.num_results, args.logfile)
+        if args.email_addresses:
+            for address in args.email_addresses:
+                s.find_emails_for_address(address)
+        elif args.recip_email_address and args.to_email_address:
+            s.find_emails_by_recipients(args.recip_email_address, args.to_email_address)
 
     #else:
     #    parser.print_help()
