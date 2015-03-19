@@ -21,6 +21,18 @@ class PostfixAmavisStats(object):
         print "Most common successful authentications for users: %s" % most_common_success_auths
         print "Most common failed authentications for ip: %s" % most_common_failed_auths
 
+    def get_elapsed_time_for_address(self, address):
+        emails = sorted(self.mailevents, key=lambda x: datetime.strptime(x.timestamp, '%b %d %H:%M:%S'))
+        year = datetime.now().year
+        first = datetime.strptime(emails[0].timestamp, '%b %d %H:%M:%S').replace(year=year)
+        last =  datetime.strptime(emails[len(self.mailevents)-1].timestamp, '%b %d %H:%M:%S').replace(year=year)
+        elapsed = last-first
+        elapsed_seconds =  elapsed.seconds
+        elapsed_minutes = elapsed.seconds/60
+        elapsed_hours =  elapsed.seconds/3600
+        return {"hours":elapsed_hours, "minutes": elapsed_minutes, 
+                "seconds": elapsed_seconds}
+
     def get_spam_stats(self):
         #mailevents = self.get_mail_events(self.maillog)
         spams = [x for x in self.mailevents if hasattr(x, 'mail_type') and x.mail_type == 'SPAM']
@@ -39,13 +51,17 @@ class PostfixAmavisStats(object):
         print "Most common sending email address being marked as spam: %s" % most_common_mailfrom
         print "Most common email address received mail marked as spam: %s" % most_common_rcptto
         print "Most common ip address sending email marked as spam: %s" % most_common_sending_ip
+
    
     def get_emails_stats(self):
         emails = [x for x in self.mailevents if x.logtype == "mail"]
         most_common_receipients = self.get_most_common_item([x.to for x in emails])
         most_common_senders = self.get_most_common_item([x.mailfrom for x in emails if hasattr(x, 'mailfrom')])
+        elapsed_time = self.get_elapsed_time_for_address(most_common_senders)
+        print "In %s hours, or %s minutes:" % (elapsed_time["hours"], elapsed_time["minutes"])
         print "Most common email address sent to: %s" % most_common_receipients
         print "Most common email address sent from: %s" % most_common_senders
+
 
     def get_most_common_item(self, items):
         data = Counter(items)
