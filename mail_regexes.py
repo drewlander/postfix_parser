@@ -29,15 +29,9 @@ get_auth_sender_re = re.compile("\w+\s+\d+\s[0-9:].+\s[\w\.]+ "
                                 "postfix\/cleanup\[\d+\]: (\S+): "
                                 ".+\(Authenticated sender: (\S+)\)\?\?")
 
-get_amavis_spam_re = re.compile("\w+\s+\d+\s[0-9:].+\s[\w\.]+ "
-                                "amavis\[\d+\]: \(\S+\) (\S+) (\S+) "
-                                "{(\w+),(\w+)}, \[\S+\]:\d+ \[(\S+)\] "
-                                "<(\S+)> -> <(\S+)>, .+ Message-ID: <(\S+)>, "
-                                ".+, Hits: (\S+), size: (\S+), "
-                                "queued_as: (\S+), ")
 get_amavis_spam_re = re.compile("(\w+\s+\d+\s[0-9:].+)\s[\w\.]+ "
                                 "amavis\[\d+\]: \(\S+\) (\S+) (\S+) "
-                                "{(\w+),(\w+)}, \[\S+\]:\d+ \[(\S+)\] "
+                                "{(\w+),(\w+)}, \[\S+\].*\[(\S+)\] "
                                 "<(\S+)> -> <(\S+)>, .+ Message-ID: "
                                 "<(\S+)>, .+, Hits: (\S+), size: (\S+), "
                                 "queued_as: (\S+), ")
