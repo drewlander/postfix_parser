@@ -31,6 +31,8 @@ class PostfixAmavisStats(object):
 
     def get_elapsed_time_for_address(self, address):
         emails = sorted(self.mailevents, key=lambda x: datetime.strptime(x.timestamp, '%b %d %H:%M:%S'))
+        if not emails:
+            return []
         year = datetime.now().year
         first = datetime.strptime(emails[0].timestamp, '%b %d %H:%M:%S').replace(year=year)
         last =  datetime.strptime(emails[len(self.mailevents)-1].timestamp, '%b %d %H:%M:%S').replace(year=year)
@@ -45,6 +47,8 @@ class PostfixAmavisStats(object):
         #mailevents = self.get_mail_events(self.maillog)
         spams = [x for x in self.mailevents if hasattr(x, 'mail_type') and x.mail_type == 'SPAM']
         spams= sorted(spams, key=lambda x: datetime.strptime(x.timestamp, '%b %d %H:%M:%S'))
+        if not spams:
+            return []
         year = datetime.now().year
         first = datetime.strptime(spams[0].timestamp, '%b %d %H:%M:%S').replace(year=year)
         last =  datetime.strptime(spams[len(spams)-1].timestamp, '%b %d %H:%M:%S').replace(year=year)
