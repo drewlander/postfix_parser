@@ -1,7 +1,13 @@
 #!/usr/bin/env python
 from parser import MailParser, MailObject
 from datetime import datetime
-from collections import Counter
+from platform import python_version
+version = python_version()[:3]
+if version == '2.6':
+    print "Importing backported Counter"
+    from fakecollections import Counter
+else:
+    from collections import Counter
 import time
 import argparse
 #from argparse import subparsers
