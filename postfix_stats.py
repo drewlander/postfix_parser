@@ -1,8 +1,10 @@
+#!/usr/bin/env python
 from parser import MailParser, MailObject
 from datetime import datetime
 from collections import Counter
 import time
 import argparse
+#from argparse import subparsers
 
 
 class PostfixAmavisStats(object):
@@ -101,21 +103,11 @@ class PostfixAmavisStats(object):
 
 def parse_args():
     parser = parser = argparse.ArgumentParser(description = "Get some stats!")
-    parser.add_argument('-s', '--spam_overview',
-                      action='store_true',
-                      default=False,
-                      dest='spam_overview',
-                      help='Generic overview of spam stats')
     parser.add_argument('-l', '--logfile', dest='logfile',
                          default='/var/log/maillog')
     parser.add_argument('-n', '--num_results', dest='num_results',
                          default=1, type=int,
                          help='number of results to show')
-    parser.add_argument('-a', '--authentication_overview',
-                         dest='authentication_overview',
-                         action='store_true',
-                         default=False,
-                         help="Overview of authentication stats")
     parser.add_argument('-o', '--mailoverview',
                         action='store_true',
                         dest='mail_overview',
@@ -133,6 +125,33 @@ def parse_args():
     parser.add_argument('--mailfrom', action='store',
                         dest='to_email_address', help='recipient email address')
 
+    subparsers = parser.add_subparsers(help='spam stats help', dest="submodule")
+    parser_spam_stats = subparsers.add_parser('spam', help='spam stats help')
+    parser_spam_stats.add_argument('-l', '--logfile', dest="logfile", help='location of log file')
+    parser_spam_stats.add_argument('-n', '--num_results', dest="num_results", 
+                                    default=1, type=int, help='location of log file')
+
+    #subparsers = parser.add_subparsers(help='Authentication stats', dest="get_auth_stats")
+    parser_auth_stats = subparsers.add_parser('auth', help='authentication stats')
+    parser_auth_stats.add_argument('-l', '--logfile', dest="logfile", help='location of log file')
+    parser_auth_stats.add_argument('-n', '--num_results', dest="num_results", 
+                                    default=1, type=int, help='location of log file')
+
+    parser_mail_stats = subparsers.add_parser('mail', help="mail stats")
+    parser_mail_stats.add_argument('-l', '--logfile', dest="logfile", help='location of log file')
+    parser_mail_stats.add_argument('-n', '--num_results', dest="num_results", 
+                                    default=1, type=int, help='location of log file')
+
+
+    parser_mail_search = subparsers.add_parser('search', help="search for email")
+    parser_mail_search.add_argument('-l', '--logfile', dest="logfile", help='location of log file')
+    parser_mail_search.add_argument('-f', '--from', dest="mailfrom", help='email address sent from')
+    parser_mail_search.add_argument('-t', '--to', dest="to", help='email address sent to')
+    parser_mail_search.add_argument('-e', '--emailaddress', dest="emailaddress", help='email address')
+    parser_mail_search.add_argument('-n', '--num_results', dest="num_results", 
+                                    default=1, type=int, help='location of log file')
+
+
 
     args = parser.parse_args()
 
@@ -140,24 +159,23 @@ def parse_args():
 
 def main():
     parser, args = parse_args()
-    num_results = args.num_results
-    if args.spam_overview:
-        s = PostfixAmavisStats(args.num_results, args.logfile)
-        #mailevents = get_mail_events(args.logfile)
-        s.get_spam_stats()
-    if args.authentication_overview:
-        s = PostfixAmavisStats(args.num_results, args.logfile)
-        s.get_authentication_stats()
-    if args.mail_overview:
-        s = PostfixAmavisStats(args.num_results, args.logfile)
-        s.get_emails_stats()
-    if args.find:
-        s = PostfixAmavisStats(args.num_results, args.logfile)
-        if args.email_addresses:
-            for address in args.email_addresses:
-                s.find_emails_for_address(address)
-        elif args.recip_email_address and args.to_email_address:
-            s.find_emails_by_recipients(args.recip_email_address, args.to_email_address)
+    num_results = args.num_results 
+    if args.submodule:
+        if args.submodule == 'spam':
+            s = PostfixAmavisStats(args.num_results, args.logfile)
+            s.get_spam_stats()
+        if args.submodule == 'auth':
+            s = PostfixAmavisStats(args.num_results, args.logfile)
+            s.get_authentication_stats()
+        if args.submodule == 'mail':
+            s = PostfixAmavisStats(args.num_results, args.logfile)
+            s.get_emails_stats()
+        if args.submodule == 'search':
+            s = PostfixAmavisStats(args.num_results, args.logfile)
+            if args.emailaddress:
+                    s.find_emails_for_address(emailaddress)
+            elif args.mailfrom and args.to:
+                s.find_emails_by_recipients(args.to, args.mailfrom)
 
     #else:
     #    parser.print_help()
